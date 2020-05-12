@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <stdbool.h>
 
 //Implementation of OpenCL blocking data reading
 #define check_print() printf("this is trace\n")
@@ -17,6 +18,15 @@ int  check_err(cl_int err,const char *s)
         perror("%s error");
         exit(1);
     }
+}
+static volatile bool canContinue = false;
+static void MyEventHandler(cl_event event,cl_int status,void *userData)
+{
+    if(status ==CL_SUBMITTED)
+    {
+        printf("the current status is submitted.");
+    }
+    canContinue = true;
 }
 
 int main(void)
@@ -84,23 +94,42 @@ int main(void)
     check_err(err,"data1 write");
     end = clock(); 
     double seconds  =(double)(end - start)/CLOCKS_PER_SEC;
+    /*
     cl_int status;
-    for(int i = 0;;i++)
+    
+        #define CL_COMPLETE                                 0x0
+        #define CL_RUNNING                                  0x1
+        #define CL_SUBMITTED                                0x2
+        #define CL_QUEUED                                   0x3
+    
+    while(1)
     {   
         err =  clGetEventInfo(evt1,CL_EVENT_COMMAND_EXECUTION_STATUS,sizeof(status),&status,NULL);
-        printf("==================>%d\n",status);
+        #if 1
         if(err == CL_SUCCESS)
         {
             if(status == CL_QUEUED)
             {
-                printf("this is write command has been queued:@%d\n",i);
+                printf("this is write command has been queued\n");
                 continue;
             }else if(status == CL_SUBMITTED)
             {
-                printf("this write command has been submittde :@%d\n",i);
+                printf("this write command has been submittde\n");
                 break;
             }
 
+        }
+        #endif
+    }
+    */
+
+    clSetEventCallback(evt1,CL_SUBMITTED,&MyEventHandler,NULL);
+    for(int i = 0;;i++)
+    {
+        if(canContinue)
+        {
+            printf("this is the %dth iteration.\n",i);
+            break;
         }
     }
     clReleaseEvent(evt1);
