@@ -93,19 +93,48 @@ int main(void)
     cl_event evt1,evt2;
     err = clEnqueueWriteBuffer(queue,src1_memobj,CL_FALSE,0,contenLength,pHostBuffer,0,NULL,&evt1);
     check_err(err,"data1 write");
-    err = clEnqueueWriteBuffer(queue,src2_memobj,CL_TRUE,0,contenLength,pHostBuffer,1,&evt1,&evt2);
+   
+    err = clEnqueueWriteBuffer(queue,src2_memobj,CL_FALSE,0,contenLength,pHostBuffer,1,&evt1,&evt2); //after evt1 the evt2
     check_err(err,"data2 write");
-    
-  
 
+    clFlush(queue);
+    struct timeval tsBegin,tsEend;
+    gettimeofday(&tsBegin,NULL);
+    clWaitForEvents(1,&evt2);
+    gettimeofday(&tsEend,NULL);
+    long duration = 1000000L *(tsEend.tv_sec-tsBegin.tv_sec)+(tsEend.tv_usec-tsBegin.tv_usec);   
+    printf("wait time spent:%ldus\n",duration);
+    cl_int status;
+
+    err = clGetEventInfo(evt2,CL_EVENT_COMMAND_EXECUTION_STATUS,sizeof(status),&status,NULL);
+    switch (status)
+    {
+    case CL_QUEUED:
+        printf("evt2 status is CL_QUEUED\n");/* code */
+        break;
+    case CL_RUNNING:
+        printf("evt2 status is CL_RUNNING\n");/* code */
+        break;
+    case CL_COMPLETE:
+        printf("evt2 status is CL_COMPLETE\n");/* code */
+        break;
+    case CL_SUBMITTED:
+        printf("evt2 status is CL_SUBMITTED\n");/* code */
+        break;
+
+    default:
+        break;
+    }
+    printf("the current status of evt2 is :%d\n",status);
+    //clReleaseEvent(evt1);
+    //clReleaseEvent(evt2);
     free(pHostBuffer);
-    clReleaseEvent(evt1);
-    clReleaseEvent(evt2);
+    
+    
     clReleaseMemObject(src1_memobj);
     clReleaseMemObject(src2_memobj);
     clReleaseCommandQueue(queue);
     clReleaseContext(context);
-
     printf("program complete\n");
     return 0;
 
