@@ -76,9 +76,11 @@ int main(void)
     for(int i = 0; i < contenLength;i++)
         pHostBuffer[i]= i;
 
+    //listen evt1 src1_memobj transmission status
+    cl_event evt1;
     clock_t start, end;
     start = clock();  
-    err = clEnqueueWriteBuffer(queue,src1_memobj,CL_TRUE,0,contenLength,pHostBuffer,0,NULL,NULL);
+    err = clEnqueueWriteBuffer(queue,src1_memobj,CL_FALSE,0,contenLength,pHostBuffer,0,NULL,&evt1);
     check_err(err,"data1 write");
     end = clock(); 
     double seconds  =(double)(end - start)/CLOCKS_PER_SEC;
