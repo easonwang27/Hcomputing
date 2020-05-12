@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <sys/time.h>
 #include <stdbool.h>
 
 //Implementation of OpenCL blocking data reading
@@ -88,61 +89,18 @@ int main(void)
         pHostBuffer[i]= i;
 
     //listen evt1 src1_memobj transmission status
-    cl_event evt1;
-    clock_t start, end;
-    start = clock();  
+
+    cl_event evt1,evt2;
     err = clEnqueueWriteBuffer(queue,src1_memobj,CL_FALSE,0,contenLength,pHostBuffer,0,NULL,&evt1);
     check_err(err,"data1 write");
-    end = clock(); 
-    double seconds  =(double)(end - start)/CLOCKS_PER_SEC;
-    /*
-    cl_int status;
-    
-        #define CL_COMPLETE                                 0x0
-        #define CL_RUNNING                                  0x1
-        #define CL_SUBMITTED                                0x2
-        #define CL_QUEUED                                   0x3
-    
-    while(1)
-    {   
-        err =  clGetEventInfo(evt1,CL_EVENT_COMMAND_EXECUTION_STATUS,sizeof(status),&status,NULL);
-        #if 1
-        if(err == CL_SUCCESS)
-        {
-            if(status == CL_QUEUED)
-            {
-                printf("this is write command has been queued\n");
-                continue;
-            }else if(status == CL_SUBMITTED)
-            {
-                printf("this write command has been submittde\n");
-                break;
-            }
-
-        }
-        #endif
-    }
-    */
-    clSetEventCallback(evt1,CL_SUBMITTED,&MyEventHandler,"this is test status");
-    for(int i = 0;;i++)
-    {
-        if(canContinue)
-        {
-            printf("this is the %dth iteration.\n",i);
-            break;
-        }
-    }
-    clReleaseEvent(evt1);
-    clock_t start_1, end_1;
-    start_1 = clock();  
-    err = clEnqueueWriteBuffer(queue,src2_memobj,CL_TRUE,0,contenLength,pHostBuffer,0,NULL,NULL);
+    err = clEnqueueWriteBuffer(queue,src2_memobj,CL_TRUE,0,contenLength,pHostBuffer,1,&evt1,&evt2);
     check_err(err,"data2 write");
-    end_1 = clock(); 
-    double seconds_1  =(double)(end_1 - start_1)/CLOCKS_PER_SEC;
-
-    printf("t1 duration: %f,t2 duration:%f\n",seconds,seconds_1);
+    
+  
 
     free(pHostBuffer);
+    clReleaseEvent(evt1);
+    clReleaseEvent(evt2);
     clReleaseMemObject(src1_memobj);
     clReleaseMemObject(src2_memobj);
     clReleaseCommandQueue(queue);
