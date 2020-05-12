@@ -84,7 +84,26 @@ int main(void)
     check_err(err,"data1 write");
     end = clock(); 
     double seconds  =(double)(end - start)/CLOCKS_PER_SEC;
+    cl_int status;
+    for(int i = 0;;i++)
+    {   
+        err =  clGetEventInfo(evt1,CL_EVENT_COMMAND_EXECUTION_STATUS,sizeof(status),&status,NULL);
+        printf("==================>%d\n",status);
+        if(err == CL_SUCCESS)
+        {
+            if(status == CL_QUEUED)
+            {
+                printf("this is write command has been queued:@%d\n",i);
+                continue;
+            }else if(status == CL_SUBMITTED)
+            {
+                printf("this write command has been submittde :@%d\n",i);
+                break;
+            }
 
+        }
+    }
+    clReleaseEvent(evt1);
     clock_t start_1, end_1;
     start_1 = clock();  
     err = clEnqueueWriteBuffer(queue,src2_memobj,CL_TRUE,0,contenLength,pHostBuffer,0,NULL,NULL);
