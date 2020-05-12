@@ -22,9 +22,10 @@ int  check_err(cl_int err,const char *s)
 static volatile bool canContinue = false;
 static void MyEventHandler(cl_event event,cl_int status,void *userData)
 {
+    printf("%s\n",userData);
     if(status ==CL_SUBMITTED)
     {
-        printf("the current status is submitted.");
+        printf("the current status is submitted.\n");
     }
     canContinue = true;
 }
@@ -122,8 +123,7 @@ int main(void)
         #endif
     }
     */
-
-    clSetEventCallback(evt1,CL_SUBMITTED,&MyEventHandler,NULL);
+    clSetEventCallback(evt1,CL_SUBMITTED,&MyEventHandler,"this is test status");
     for(int i = 0;;i++)
     {
         if(canContinue)
