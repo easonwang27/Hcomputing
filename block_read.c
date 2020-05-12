@@ -78,6 +78,7 @@ int main(void)
 
     //listen evt1 src1_memobj transmission status
     cl_event evt1;
+    cl_event evt;
     clock_t start, end;
     start = clock();  
     err = clEnqueueWriteBuffer(queue,src1_memobj,CL_FALSE,0,contenLength,pHostBuffer,0,NULL,&evt1);
