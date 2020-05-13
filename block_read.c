@@ -43,7 +43,7 @@ int main(void)
     cl_kernel kernel;
     cl_kernel kernel2;
     cl_program program;
-
+    cl_event evt1,evt2;
     char *kernel_src;
     int *pHostBuffer;
     int *pDeviceBuffer;
@@ -86,58 +86,12 @@ int main(void)
         perror("src2_memobj is null");
         exit(1);
     }
-    
-    // alloc 64MB data
-    pHostBuffer = malloc(contenLength);
-    for(int i = 0; i < contenLength;i++)
-        pHostBuffer[i]= i;
-
-    //listen evt1 src1_memobj transmission status
-
-    cl_event evt1,evt2;
-    err = clEnqueueWriteBuffer(queue,src1_memobj,CL_FALSE,0,contenLength,pHostBuffer,0,NULL,&evt1);
-    check_err(err,"data1 write");
-   
-    err = clEnqueueWriteBuffer(queue,src2_memobj,CL_FALSE,0,contenLength,pHostBuffer,1,&evt1,&evt2); //after evt1 the evt2
-    check_err(err,"data2 write");
-
-    clFlush(queue);
-    struct timeval tsBegin,tsEend;
-    gettimeofday(&tsBegin,NULL);
-    clWaitForEvents(1,&evt2);
-    gettimeofday(&tsEend,NULL);
-    long duration = 1000000L *(tsEend.tv_sec-tsBegin.tv_sec)+(tsEend.tv_usec-tsBegin.tv_usec);   
-    printf("wait time spent:%ldus\n",duration);
-    cl_int status;
-
-    err = clGetEventInfo(evt2,CL_EVENT_COMMAND_EXECUTION_STATUS,sizeof(status),&status,NULL);
-    switch (status)
-    {
-    case CL_QUEUED:
-        printf("evt2 status is CL_QUEUED\n");/* code */
-        break;
-    case CL_RUNNING:
-        printf("evt2 status is CL_RUNNING\n");/* code */
-        break;
-    case CL_COMPLETE:
-        printf("evt2 status is CL_COMPLETE\n");/* code */
-        break;
-    case CL_SUBMITTED:
-        printf("evt2 status is CL_SUBMITTED\n");/* code */
-        break;
-
-    default:
-        break;
-    }
-    printf("the current status of evt2 is :%d\n",status);
-    //out put mem
     dst_memobj = clCreateBuffer(context,CL_MEM_READ_WRITE,contenLength,NULL,&err);
     if((dst_memobj == NULL)||(err < 0))
     {
         perror("out mem fail");
         exit(1);
     }
-
     //path kernel 
     const char *pFileName = "./kernel.cl";
     FILE *fp = fopen(pFileName,"r");
@@ -149,9 +103,9 @@ int main(void)
     fseek(fp,0,SEEK_END);
     const long kernel_len = ftell(fp);
     fseek(fp,0,SEEK_SET);
-    kernel_src = malloc(sizeof(char)*contenLength+1);
-    kernel_src[contenLength]= '\0';
+    kernel_src = malloc(kernel_len);
     fread(kernel_src,1,kernel_len,fp);
+    fclose(fp);
     //create program
     program = clCreateProgramWithSource(context,1,(const char**)&kernel_src,&kernel_len,&err);
     if((program ==NULL)||(err < 0))
@@ -162,12 +116,16 @@ int main(void)
     //build program
     err = clBuildProgram(program,1,&device,NULL,NULL,NULL);
     if(err < 0)
-    {
+    {   size_t len;
+        char buffer[1024];
+        printf("error :failed to build program exe!\n");
+        clGetProgramBuildInfo(program,device,CL_PROGRAM_BUILD_LOG,sizeof(buffer),buffer,&len);
+        printf("%s\n",buffer);
         perror("build program fail");
         exit(1);
     }
     //create kernel , first kernel fun is "kernel_test"
-    kernel = clCreateKernel(program,"kernel_test",&err);
+    kernel = clCreateKernel(program,"kernel1_test",&err);
     if(kernel == NULL)
     {
         perror("create kernel fail");
@@ -182,6 +140,46 @@ int main(void)
         perror("set kernel arg fail");
         exit(1);
     }
+
+    
+    //create kernel2  kernel2_test
+    //Now when the device is doing calculation, the host side is not interfered
+    kernel2= clCreateKernel(program,"kernel2_test",&err);
+    if(kernel2 ==NULL)
+    {
+        perror("some error\n");
+        exit(1);
+    }
+    if(err < 0)
+    {
+        perror("create kernel2 fail");
+        exit(1);
+    }
+   
+    // Set the associated kernel2 parameter
+    err= clSetKernelArg(kernel2,0,sizeof(cl_mem),&dst_memobj);
+    err|=clSetKernelArg(kernel2,1,sizeof(cl_mem),&src1_memobj);
+    err|=clSetKernelArg(kernel2,2,sizeof(cl_mem),&src2_memobj);
+    if(err < 0)
+    {
+        perror("associated kernel2 parameter");
+        exit(1);
+    }
+    // alloc 64MB data
+    pHostBuffer = malloc(contenLength);
+    for(int i = 0; i < contenLength;i++)
+        pHostBuffer[i]= i;
+
+
+    //listen evt1 src1_memobj transmission status
+  
+    err = clEnqueueWriteBuffer(queue,src1_memobj,CL_FALSE,0,contenLength,pHostBuffer,0,NULL,&evt1);
+    check_err(err,"data1 write");
+    err = clEnqueueWriteBuffer(queue,src2_memobj,CL_FALSE,0,contenLength,pHostBuffer,1,&evt1,&evt2); //after evt1 the evt2
+    check_err(err,"data2 write");
+   // printf("the current status of evt2 is :%d\n",status);
+    //out put mem
+
     //get work_group max size
     size_t maxWorkGoupSize = 0;
     clGetDeviceInfo(device,CL_DEVICE_MAX_WORK_GROUP_SIZE,sizeof(maxWorkGoupSize),(void*)&maxWorkGoupSize,NULL);
@@ -192,50 +190,33 @@ int main(void)
     }
     printf("work group max size :%ld\n",maxWorkGoupSize);
 
-  
-
     //wait data trs
     //wait 2 pid 
     clWaitForEvents(2,(cl_event[2]){evt1,evt2});
+    
     clReleaseEvent(evt1);
     clReleaseEvent(evt2);
     evt1 =NULL;
     evt2 =NULL;
-
     //Determine the size of work items and the size of each team
     //Each team has maxWorkGoupSize work-items
     //the use evt1 track kernel1 fun exe status
-    err = clEnqueueNDRangeKernel(queue,kernel,1,NULL,(const size_t*)(contenLength/sizeof(int)),&maxWorkGoupSize,0,NULL,&evt1);
+    size_t work_group_size = 4;
+    err = clEnqueueNDRangeKernel(queue,kernel,1,NULL,&contenLength,&work_group_size,0,NULL,&evt1);
     if(err < 0)
     {
         perror("enqueue kernel fun 1 fail");
         exit(1);
     }
-
-    //create kernel2  kernel2_test
-    //Now when the device is doing calculation, the host side is not interfered
-    kernel2= clCreateKernel(program,"kernel2_test",&err);
-    if(err < 0)
-    {
-        perror("create kernel2 fail");
-        exit(1);
-    }
-    // Set the associated kernel2 parameter
-    err= clSetKernelArg(kernel2,0,sizeof(cl_mem),&dst_memobj);
-    err|=clSetKernelArg(kernel2,1,sizeof(cl_mem),&src1_memobj);
-    err|=clSetKernelArg(kernel2,2,sizeof(cl_mem),&src2_memobj);
-    if(err < 0)
-    {
-        perror("associated kernel2 parameter");
-        exit(1);
-    }
+  
     //this kernel2 must wait kernel1 Execution complete
-    err = clEnqueueNDRangeKernel(queue,kernel2,1,NULL,(const size_t*)(maxWorkGoupSize/sizeof(int)),&maxWorkGoupSize,1,&evt1,&evt2);
+    err = clEnqueueNDRangeKernel(queue,kernel2,1,NULL,&contenLength,&work_group_size,1,&evt1,&evt2);
     if(err < 0)
     {
         perror("enqueue kernel kernel2 fail\n");
         exit(1);
     }
+    
     //read Return to verification
     pDeviceBuffer = (int *)malloc(contenLength);
     if(pDeviceBuffer ==NULL)
@@ -253,21 +234,25 @@ int main(void)
     for(int i = 0;i < contenLength/sizeof(int);i++)
     {
         int testData= pHostBuffer[i]+pHostBuffer[i];
+        printf("%d\n",pDeviceBuffer[i]);
         testData = testData*pHostBuffer[i]-pHostBuffer[i];
         if(testData != pDeviceBuffer[i])
         {
-            printf("error occurred @%d,result is %d\n",i,pDeviceBuffer[i]);
+            printf("error occurred @ %d,result is %d\n",i,pDeviceBuffer[i]);
         }
 
     }
+   
     free(pHostBuffer);
     free(pDeviceBuffer);
-    free(kernel_src);
-    clReleaseKernel(kernel);
-    clReleaseKernel(kernel2);
+    free(kernel_src);  
     clReleaseMemObject(dst_memobj);
     clReleaseMemObject(src1_memobj);
     clReleaseMemObject(src2_memobj);
+    printf("program complete\n");
+    clReleaseKernel(kernel);
+    clReleaseKernel(kernel2);
+     printf("program complete\n");
     clReleaseProgram(program);
     clReleaseCommandQueue(queue);
     clReleaseContext(context);
