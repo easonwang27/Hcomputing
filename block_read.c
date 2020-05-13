@@ -129,8 +129,7 @@ int main(void)
     //clReleaseEvent(evt1);
     //clReleaseEvent(evt2);
     free(pHostBuffer);
-    
-    
+
     clReleaseMemObject(src1_memobj);
     clReleaseMemObject(src2_memobj);
     clReleaseCommandQueue(queue);
