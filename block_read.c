@@ -40,10 +40,12 @@ int main(void)
     cl_command_queue  queue;
     cl_mem src1_memobj;
     cl_mem src2_memobj;
+    cl_mem dst_memobj;
+    cl_kernel kernel;
+    cl_program program;
 
     int *pHostBuffer;
-   // int *pDeviceBuffer;
-    //step1 get platform
+    int *pDeviceBuffer;
     err = clGetPlatformIDs(1,&platform,NULL);
     check_err(err,"get platform");
     
@@ -126,6 +128,13 @@ int main(void)
         break;
     }
     printf("the current status of evt2 is :%d\n",status);
+    //out put mem
+    dst_memobj = clCreateBuffer(context,CL_MEM_READ_WRITE,contenLength,NULL,&err);
+    if((dst_memobj == NULL)||(err < 0))
+    {
+        perror("out mem fail");
+        exit(1);
+    }
     //clReleaseEvent(evt1);
     //clReleaseEvent(evt2);
     free(pHostBuffer);
