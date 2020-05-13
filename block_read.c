@@ -152,7 +152,20 @@ int main(void)
     kernel_src = malloc(sizeof(char)*contenLength+1);
     kernel_src[contenLength]= '\0';
     fread(kernel_src,1,kernel_len,fp);
-
+    //create program
+    program = clCreateProgramWithSource(context,1,(char**)&kernel_src,&kernel_len,&err);
+    if((program ==NULL)||(err < 0))
+    {
+        perror("create program fail");
+        exit(1);
+    }
+    //build program
+    err = clBuildProgram(program,1,&device,NULL,NULL,NULL);
+    if(err < 0)
+    {
+        perror("build program fail");
+        exit(1);
+    }
     //clReleaseEvent(evt1);
     //clReleaseEvent(evt2);
     free(pHostBuffer);
