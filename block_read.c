@@ -166,13 +166,18 @@ int main(void)
         perror("build program fail");
         exit(1);
     }
-    //create kernel 
+    //create kernel , first kernel fun is "kernel_test"
     kernel = clCreateKernel(program,"kernel_test",&err);
     if(kernel == NULL)
     {
         perror("create kernel fail");
         exit(1);
     }  
+    //set kernel arg
+    err = clSetKernelArg(kernel,0,sizeof(cl_mem),(void*)&dst_memobj);
+    err|= clSetKernelArg(kernel,1,sizeof(cl_mem),(void*)&src1_memobj);
+    err|= clSetKernelArg(kernel,2,sizeof(cl_mem),(void*)&src2_memobj);
+
     //clReleaseEvent(evt1);
     //clReleaseEvent(evt2);
     free(pHostBuffer);
