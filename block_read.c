@@ -41,6 +41,7 @@ int main(void)
     cl_mem src2_memobj;
     cl_mem dst_memobj;
     cl_kernel kernel;
+    cl_kernel kernel2;
     cl_program program;
 
     char *kernel_src;
@@ -191,6 +192,8 @@ int main(void)
     }
     printf("work group max size :%ld\n",maxWorkGoupSize);
 
+  
+
     //wait data trs
     //wait 2 pid 
     clWaitForEvents(2,(cl_event[2]){evt1,evt2});
@@ -208,6 +211,16 @@ int main(void)
         perror("enqueue kernel fun 1 fail");
         exit(1);
     }
+
+    //create kernel2  kernel2_test
+    //Now when the device is doing calculation, the host side is not interfered
+    kernel2= clCreateKernel(program,"kernel2_test",&err);
+    if(err < 0)
+    {
+        perror("create kernel2 fail");
+        exit(1);
+    }
+    
 
     free(pHostBuffer);
     free(kernel_src);
