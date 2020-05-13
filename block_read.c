@@ -166,6 +166,13 @@ int main(void)
         perror("build program fail");
         exit(1);
     }
+    //create kernel 
+    kernel = clCreateKernel(program,"kernel_test",&err);
+    if(kernel == NULL)
+    {
+        perror("create kernel fail");
+        exit(1);
+    }  
     //clReleaseEvent(evt1);
     //clReleaseEvent(evt2);
     free(pHostBuffer);
