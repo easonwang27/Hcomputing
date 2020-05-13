@@ -198,7 +198,17 @@ int main(void)
     clReleaseEvent(evt2);
     evt1 =NULL;
     evt2 =NULL;
-    
+
+    //Determine the size of work items and the size of each team
+    //Each team has maxWorkGoupSize work-items
+    //the use evt1 track kernel1 fun exe status
+    err = clEnqueueNDRangeKernel(queue,kernel,1,NULL,(const size_t*)(contenLength/sizeof(int)),&maxWorkGoupSize,0,NULL,&evt1);
+    if(err < 0)
+    {
+        perror("enqueue kernel fun 1 fail");
+        exit(1);
+    }
+
     free(pHostBuffer);
     free(kernel_src);
     clReleaseMemObject(src1_memobj);
