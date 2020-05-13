@@ -220,8 +220,24 @@ int main(void)
         perror("create kernel2 fail");
         exit(1);
     }
-    
+    // Set the associated kernel2 parameter
+    err= clSetKernelArg(kernel2,0,sizeof(cl_mem),&dst_memobj);
+    err|=clSetKernelArg(kernel2,1,sizeof(cl_mem),&src1_memobj);
+    err|=clSetKernelArg(kernel2,2,sizeof(cl_mem),&src2_memobj);
+    if(err < 0)
+    {
+        perror("associated kernel2 parameter");
+        exit(1);
+    }
 
+    //this kernel2 must wait kernel1 Execution complete
+    err = clEnqueueNDRangeKernel(queue,kernel2,1,NULL,(const size_t*)(maxWorkGoupSize/sizeof(int)),&maxWorkGoupSize,1,&evt1,&evt2);
+    if(err < 0)
+    {
+        perror("enqueue kernel kernel2 fail\n");
+        exit(1);
+    }
+    
     free(pHostBuffer);
     free(kernel_src);
     clReleaseMemObject(src1_memobj);
