@@ -229,7 +229,6 @@ int main(void)
         perror("associated kernel2 parameter");
         exit(1);
     }
-
     //this kernel2 must wait kernel1 Execution complete
     err = clEnqueueNDRangeKernel(queue,kernel2,1,NULL,(const size_t*)(maxWorkGoupSize/sizeof(int)),&maxWorkGoupSize,1,&evt1,&evt2);
     if(err < 0)
@@ -237,11 +236,39 @@ int main(void)
         perror("enqueue kernel kernel2 fail\n");
         exit(1);
     }
-    
+    //read Return to verification
+    pDeviceBuffer = (int *)malloc(contenLength);
+    if(pDeviceBuffer ==NULL)
+    {
+        perror("pDeviceBuffer malloc fail");
+        exit(1);
+    }
+    //read buffer form in kernel
+    err = clEnqueueReadBuffer(queue,dst_memobj,CL_TRUE,0,contenLength,pDeviceBuffer,1,&evt2,NULL);
+    if(err < 0)
+    {
+        perror("read pdevicebuffer fail");
+        exit(1);
+    }
+    for(int i = 0;i < contenLength/sizeof(int);i++)
+    {
+        int testData= pHostBuffer[i]+pHostBuffer[i];
+        testData = testData*pHostBuffer[i]-pHostBuffer[i];
+        if(testData != pDeviceBuffer[i])
+        {
+            printf("error occurred @%d,result is %d\n",i,pDeviceBuffer[i]);
+        }
+
+    }
     free(pHostBuffer);
+    free(pDeviceBuffer);
     free(kernel_src);
+    clReleaseKernel(kernel);
+    clReleaseKernel(kernel2);
+    clReleaseMemObject(dst_memobj);
     clReleaseMemObject(src1_memobj);
     clReleaseMemObject(src2_memobj);
+    clReleaseProgram(program);
     clReleaseCommandQueue(queue);
     clReleaseContext(context);
     printf("program complete\n");
