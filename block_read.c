@@ -44,8 +44,10 @@ int main(void)
     cl_kernel kernel;
     cl_program program;
 
+    char *kernel_src;
     int *pHostBuffer;
     int *pDeviceBuffer;
+    
     err = clGetPlatformIDs(1,&platform,NULL);
     check_err(err,"get platform");
     
@@ -135,10 +137,26 @@ int main(void)
         perror("out mem fail");
         exit(1);
     }
+
+    //path kernel 
+    const char *pFileName = "./test.cl";
+    FILE *fp = fopen(pFileName,"r");
+    if(fp==NULL)
+    {
+        perror("can't find test.cl");
+        exit(1);
+    }
+    fseek(fp,0,SEEK_END);
+    const long kernel_len = ftell(fp):
+    fseek(fp,0,SEEK_SET);
+    kernel_src = malloc(sizeof(char)*contenLength+1);
+    kernel_src[contenLength]= '\0';
+    fread(kernel_src,1,kernel_len,fp);
+
     //clReleaseEvent(evt1);
     //clReleaseEvent(evt2);
     free(pHostBuffer);
-
+    free(kernel_src);
     clReleaseMemObject(src1_memobj);
     clReleaseMemObject(src2_memobj);
     clReleaseCommandQueue(queue);
