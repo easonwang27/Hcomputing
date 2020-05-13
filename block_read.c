@@ -147,7 +147,7 @@ int main(void)
         exit(1);
     }
     fseek(fp,0,SEEK_END);
-    const long kernel_len = ftell(fp):
+    const long kernel_len = ftell(fp);
     fseek(fp,0,SEEK_SET);
     kernel_src = malloc(sizeof(char)*contenLength+1);
     kernel_src[contenLength]= '\0';
@@ -190,7 +190,7 @@ int main(void)
         perror("can't get device work_group max szie");
         exit(1);
     }
-    printf("work group max size :%d\n",maxWorkGoupSize);
+    printf("work group max size :%ld\n",maxWorkGoupSize);
     //clReleaseEvent(evt1);
     //clReleaseEvent(evt2);
     free(pHostBuffer);
