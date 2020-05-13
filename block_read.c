@@ -177,7 +177,20 @@ int main(void)
     err = clSetKernelArg(kernel,0,sizeof(cl_mem),(void*)&dst_memobj);
     err|= clSetKernelArg(kernel,1,sizeof(cl_mem),(void*)&src1_memobj);
     err|= clSetKernelArg(kernel,2,sizeof(cl_mem),(void*)&src2_memobj);
-
+    if(err < 0)
+    {
+        perror("set kernel arg fail");
+        exit(1);
+    }
+    //get work_group max size
+    size_t maxWorkGoupSize = 0;
+    clGetDeviceInfo(device,CL_DEVICE_MAX_WORK_GROUP_SIZE,sizeof(maxWorkGoupSize),(void*)&maxWorkGoupSize,&err);
+    if(err < 0)
+    {
+        perror("can't get device work_group max szie");
+        exit(1);
+    }
+    printf("work group max size :%d\n",maxWorkGoupSize);
     //clReleaseEvent(evt1);
     //clReleaseEvent(evt2);
     free(pHostBuffer);
