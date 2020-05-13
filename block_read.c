@@ -139,11 +139,11 @@ int main(void)
     }
 
     //path kernel 
-    const char *pFileName = "./test.cl";
+    const char *pFileName = "./kernel.cl";
     FILE *fp = fopen(pFileName,"r");
     if(fp==NULL)
     {
-        perror("can't find test.cl");
+        perror("can't find kernel.cl");
         exit(1);
     }
     fseek(fp,0,SEEK_END);
