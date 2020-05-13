@@ -23,7 +23,6 @@ int  check_err(cl_int err,const char *s)
 static volatile bool canContinue = false;
 static void MyEventHandler(cl_event event,cl_int status,void *userData)
 {
-    printf("%s\n",userData);
     if(status ==CL_SUBMITTED)
     {
         printf("the current status is submitted.\n");
@@ -153,7 +152,7 @@ int main(void)
     kernel_src[contenLength]= '\0';
     fread(kernel_src,1,kernel_len,fp);
     //create program
-    program = clCreateProgramWithSource(context,1,(char**)&kernel_src,&kernel_len,&err);
+    program = clCreateProgramWithSource(context,1,(const char**)&kernel_src,&kernel_len,&err);
     if((program ==NULL)||(err < 0))
     {
         perror("create program fail");
@@ -184,15 +183,22 @@ int main(void)
     }
     //get work_group max size
     size_t maxWorkGoupSize = 0;
-    clGetDeviceInfo(device,CL_DEVICE_MAX_WORK_GROUP_SIZE,sizeof(maxWorkGoupSize),(void*)&maxWorkGoupSize,&err);
+    clGetDeviceInfo(device,CL_DEVICE_MAX_WORK_GROUP_SIZE,sizeof(maxWorkGoupSize),(void*)&maxWorkGoupSize,NULL);
     if(err < 0)
     {
         perror("can't get device work_group max szie");
         exit(1);
     }
     printf("work group max size :%ld\n",maxWorkGoupSize);
-    //clReleaseEvent(evt1);
-    //clReleaseEvent(evt2);
+
+    //wait data trs
+    //wait 2 pid 
+    clWaitForEvents(2,(cl_event[2]){evt1,evt2});
+    clReleaseEvent(evt1);
+    clReleaseEvent(evt2);
+    evt1 =NULL;
+    evt2 =NULL;
+    
     free(pHostBuffer);
     free(kernel_src);
     clReleaseMemObject(src1_memobj);
